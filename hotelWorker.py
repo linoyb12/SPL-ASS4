@@ -19,7 +19,8 @@ def clean(self):
 
     select = """SELECT RoomNumber
         FROM ( ? )
-        WHERE FirstName IS NULL """, [joined, ]
+        WHERE FirstName IS NULL
+        ORDER BY RoomNumber ASC""", [joined, ]
 
     c = self._conn.cursor()
     c.execute(select)
