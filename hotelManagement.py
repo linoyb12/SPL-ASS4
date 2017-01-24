@@ -1,9 +1,16 @@
 import sqlite3
 import sys
+from itertools import count
 
-_tasks = 0
+
 _conn = sqlite3.connect('cronhoteldb.db')
+_taskId = 1
+#_tasks = count()
+#next(_tasks)
 
+def next_id():
+    global _taskId;
+    _taskId += 1
 
 def create_tables():
     _conn.executescript("""
@@ -39,7 +46,8 @@ def create_tables():
 
 def room(splited_data):
     _conn.execute("""
-        INSERT INTO Rooms (RoomNumber) VALUES (?,)""", [splited_data[1], ])
+        INSERT INTO Rooms (RoomNumber) VALUES (?)
+    """, [splited_data[1]])
 
     if splited_data.__len__() > 2:
         _conn.execute("""
@@ -50,27 +58,27 @@ def room(splited_data):
 
 def breakfast_n_wakup(splited_data):
     _conn.execute("""
-            INSERT INTO TaskTimes (TaskId, DoEvery, NumTimes) VALUES (?, ?, ?)""", [_tasks, splited_data[1], splited_data[3]])
+            INSERT INTO TaskTimes (TaskId, DoEvery, NumTimes) VALUES (?, ?, ?)""", [_taskId, splited_data[1], splited_data[3]])
     _conn.execute("""
-        INSERT INTO Tasks (TaskId, TaskName, Parameter) VALUES (?, ?, ?)""", [_tasks, splited_data[0], splited_data[2]])
-    _tasks += 1
+        INSERT INTO Tasks (TaskId, TaskName, Parameter) VALUES (?, ?, ?)""", [_taskId, splited_data[0], splited_data[2]])
+    next_id()
 
 
 def clean(splited_data):
     _conn.execute("""
-            INSERT INTO TaskTimes (TaskId, DoEvery, NumTimes) VALUES (?, ?, ?)""", [_tasks, splited_data[1], splited_data[3] ])
+            INSERT INTO TaskTimes (TaskId, DoEvery, NumTimes) VALUES (?, ?, ?)""",
+                  [_taskId, splited_data[1], splited_data[2]])
     _conn.execute("""
-        INSERT INTO Tasks (TaskId, TaskName, Parameter) VALUES (?, ?, ?)""", [_tasks, splited_data[0], 0 ])
-    _tasks += 1
-
+        INSERT INTO Tasks (TaskId, TaskName, Parameter) VALUES (?, ?, ?)""", [_taskId, splited_data[0], 0 ])
+    next_id()
 
 def insert_data(data):
     splited_data=data.split(',')
     options = {
-        'room': room(splited_data),
-        'clean': clean(splited_data),
-        'wakeup': breakfast_n_wakup(splited_data),
-        'breakfast': breakfast_n_wakup(splited_data),
+        'room': room,
+        'clean': clean,
+        'wakeup': breakfast_n_wakup,
+        'breakfast': breakfast_n_wakup,
     }
     options[splited_data[0]](splited_data)
 
@@ -78,13 +86,20 @@ def insert_data(data):
 def parse_config(config_path):
     with open(config_path) as input_file:
         for line in input_file:
-            insert_data(line)
+            insert_data(line.strip())
+
+
+def _close_db():
+    _conn.commit()
+    _conn.close()
 
 
 def main(config_path):
+    create_tables()
     parse_config(config_path)
+    _close_db()
 
 
 if __name__ == '__main__':
-    main(sys.argv)
-
+    #main(sys.argv)
+    main("C:\\Users\\linoy\\Desktop\\assa4\\assignment4_shortConfig.txt")
